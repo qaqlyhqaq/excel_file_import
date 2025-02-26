@@ -1,4 +1,4 @@
-use calamine::{open_workbook_auto, Data, Range, Reader};
+use calamine::{open_workbook_auto, Data, Range, Reader, Sheets};
 use std::env;
 use std::fs::File;
 use std::io::{BufWriter, Write};
@@ -24,11 +24,20 @@ fn main() {
     let dest = sce.with_extension("csv");
     let mut dest = BufWriter::new(File::create(dest).unwrap());
     let mut xl = open_workbook_auto(&sce).unwrap();
+
+    // xl.metadata();
+    // dbg!(xl)
+    // if let Sheets::Xlsx(xlsx) = xl{
+    //     xlsx.sheets_metadata()
+    //         .iter()
+    //         .for_each(|s| println!( "{}", s));
+    // }
+
     let range = xl.worksheet_range(&sheet).unwrap();
 
     write_range(&mut dest, &range).unwrap();
 }
-
+use quick_xml::events::Event;
 fn write_range<W: Write>(dest: &mut W, range: &Range<Data>) -> std::io::Result<()> {
     let n = range.get_size().1 - 1;
     for r in range.rows() {
@@ -36,6 +45,7 @@ fn write_range<W: Write>(dest: &mut W, range: &Range<Data>) -> std::io::Result<(
             match *c {
                 Data::Empty => Ok(()),
                 Data::String(ref s) | Data::DateTimeIso(ref s) | Data::DurationIso(ref s) => {
+                    println!("解析内容:{}", s);
                     write!(dest, "{}", s)
                 }
                 Data::Float(ref f) => write!(dest, "{}", f),

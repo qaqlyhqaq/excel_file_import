@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 use std::io::BufReader;
 use std::io::{Read, Seek};
 use std::str::FromStr;
-
+use std::fmt::Write;
 use log::warn;
 use quick_xml::events::attributes::{Attribute, Attributes};
 use quick_xml::events::Event;
@@ -234,6 +234,8 @@ impl<RS: Read + Seek> Xlsx<RS> {
             match xml.read_event_into(&mut buf) {
                 Ok(Event::Start(ref e)) if e.local_name().as_ref() == b"si" => {
                     if let Some(s) = read_string(&mut xml, e.name())? {
+
+                        println!("识别到 si : \"{}\"", s);
                         self.strings.push(s);
                     }
                 }
@@ -1240,6 +1242,7 @@ pub(crate) fn read_string(
     xml: &mut XlReader<'_>,
     QName(closing): QName,
 ) -> Result<Option<String>, XlsxError> {
+    let mut total_buf = String::new();
     let mut buf = Vec::with_capacity(1024);
     let mut val_buf = Vec::with_capacity(1024);
     let mut rich_buffer: Option<String> = None;
@@ -1257,7 +1260,7 @@ pub(crate) fn read_string(
                 is_phonetic_text = true;
             }
             Ok(Event::End(ref e)) if e.local_name().as_ref() == closing => {
-                return Ok(rich_buffer);
+                return Ok(Some(total_buf));
             }
             Ok(Event::End(ref e)) if e.local_name().as_ref() == b"rPh" => {
                 is_phonetic_text = false;
@@ -1285,6 +1288,12 @@ pub(crate) fn read_string(
             Err(e) => return Err(XlsxError::Xml(e)),
             _ => (),
         }
+        //不遍历空行
+        if buf.is_empty() {
+            continue;
+        }
+        // println!("read_string->buf:<{}>",str::from_utf8(buf.as_slice()).unwrap());
+        writeln!(total_buf,"<{}>",str::from_utf8(buf.as_slice()).unwrap().clone());
     }
 }
 
