@@ -235,7 +235,6 @@ impl<RS: Read + Seek> Xlsx<RS> {
                 Ok(Event::Start(ref e)) if e.local_name().as_ref() == b"si" => {
                     if let Some(s) = read_string(&mut xml, e.name())? {
 
-                        println!("识别到 si : \"{}\"", s);
                         self.strings.push(s);
                     }
                 }
